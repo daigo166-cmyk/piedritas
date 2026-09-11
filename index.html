@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="es" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piedras del Río | Esencia Natural</title>
+    <!-- Tailwind CSS para diseño responsivo y moderno -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        river: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Alpine.js para interactividad suave y animaciones -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .smooth-transition { transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 smooth-transition min-h-screen flex flex-col" 
+      x-data="{ 
+          darkMode: false, 
+          modalOpen: true, 
+          cartOpen: false,
+          activeSection: 'inicio',
+          cart: [],
+          form: {
+              nombre: '',
+              telefono: '',
+              direccion: '',
+              ciudad: '',
+              notas: ''
+          },
+          addToCart(name, price) {
+              const existing = this.cart.find(item => item.name === name);
+              if (existing) {
+                  existing.qty++;
+              } else {
+                  this.cart.push({ name, price, qty: 1 });
+              }
+          },
+          removeFromCart(index) {
+              this.cart.splice(index, 1);
+          },
+          getTotal() {
+              return this.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+          },
+          getTotalItems() {
+              return this.cart.reduce((sum, item) => sum + item.qty, 0);
+          },
+          enviarPedidoWhatsApp() {
+              if (this.cart.length === 0) {
+                  alert('Tu carrito está vacío.');
+                  return;
+              }
+              if (!this.form.nombre || !this.form.telefono || !this.form.direccion) {
+                  alert('Por favor completa al menos tu nombre, teléfono y dirección.');
+                  return;
+              }
+
+              let mensaje = `*¡Nuevo Pedido de Piedras del Río!*%0A%0A`;
+              mensaje += `👤 *Cliente:* ${this.form.nombre}%0A`;
+              mensaje += `📞 *Teléfono:* ${this.form.telefono}%0A`;
+              mensaje += `📍 *Dirección:* ${this.form.direccion} (${this.form.ciudad})%0A`;
+              if (this.form.notas) mensaje += `📝 *Notas:* ${this.form.notas}%0A`;
+              mensaje += `%0A*Detalle de la compra:*%0A`;
+
+              this.cart.forEach(item => {
+                  mensaje += `- ${item.qty}x ${item.name} ($${(item.price * item.qty).toLocaleString()})\n`;
+              });
+
+              mensaje += `%0A💰 *Total a pagar:* $${this.getTotal().toLocaleString()}`;
+
+              const numeroWhatsApp = '573133992644';
+              window.open(`https://wa.me/${numeroWhatsApp}?text=${mensaje}`, '_blank');
+          },
+          toggleTheme() {
+              this.darkMode = !this.darkMode;
+              if(this.darkMode) {
+                  document.documentElement.classList.add('dark');
+                  document.documentElement.classList.remove('light');
+              } else {
+                  document.documentElement.classList.remove('dark');
+                  document.documentElement.classList.add('light');
+              }
+          }
+      }">
+
+    <!-- VENTANA EMERGENTE (MODAL DE DESCUENTO) -->
+    <div x-show="modalOpen" 
+         x-transition class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+         role="dialog" aria-modal="true">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-8 max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-700 text-center relative">
+            <button @click="modalOpen = false" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1" aria-label="Cerrar">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <div class="w-16 h-16 bg-river-100 dark:bg-river-900/50 text-river-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 16h14"></path></svg>
+            </div>
+            <h3 class="text-2xl font-bold mb-2">¡Oferta Exclusiva del Río!</h3>
+            <p class="text-slate-600 dark:text-slate-300 mb-6 text-sm leading-relaxed">
+                Llévate un <strong class="text-river-600 dark:text-river-400 font-bold">50% de descuento</strong> aplicable directamente en tu <span class="underline decoration-river-500 font-semibold">tercera compra</span>.
+            </p>
+            <button @click="modalOpen = false" class="w-full bg-river-600 hover:bg-river-700 text-white font-medium py-3 rounded-xl transition shadow-lg">
+                ¡Aprovechar Descuento!
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL DEL CARRITO Y CHECKOUT -->
+    <div x-show="cartOpen" x-transition class="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm">
+        <div class="bg-white dark:bg-slate-800 w-full max-w-md h-full shadow-2xl flex flex-col p-6 overflow-y-auto">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-700">
+                <h2 class="text-xl font-bold">Tu Carrito de Compras</h2>
+                <button @click="cartOpen = false" class="text-slate-400 hover:text-slate-600 p-1">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <!-- Listado de productos -->
+            <div class="flex-grow py-4 space-y-4 overflow-y-auto">
+                <template x-if="cart.length === 0">
+                    <p class="text-center text-slate-500 dark:text-slate-400 py-10">Tu carrito está vacío.</p>
+                </template>
+                <template x-for="(item, index) in cart" :key="index">
+                    <div class="flex items-center justify-between bg-slate-50 dark:bg-slate-700/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
+                        <div>
+                            <h4 class="font-semibold text-sm" x-text="item.name"></h4>
+                            <span class="text-xs text-slate-500" x-text="'$' + item.price.toLocaleString() + ' x ' + item.qty"></span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="font-bold text-sm" x-text="'$' + (item.price * item.qty).toLocaleString()"></span>
+                            <button @click="removeFromCart(index)" class="text-red-500 hover:text-red-700 text-sm font-bold">&times;</button>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Formulario de Datos y Dirección -->
+            <div class="border-t border-slate-200 dark:border-slate-700 pt-4 space-y-3">
+                <h3 class="font-bold text-sm text-river-600 dark:text-river-400">Datos de Envío</h3>
+                <input type="text" x-model="form.nombre" placeholder="Nombre completo *" class="w-full text-sm px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent">
+                <input type="tel" x-model="form.telefono" placeholder="Número de Teléfono / WhatsApp *" class="w-full text-sm px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent">
+                <input type="text" x-model="form.direccion" placeholder="Dirección exacta *" class="w-full text-sm px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent">
+                <input type="text" x-model="form.ciudad" placeholder="Ciudad / Municipio" class="w-full text-sm px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent">
+                <textarea x-model="form.notas" placeholder="Instrucciones adicionales (Opcional)" rows="2" class="w-full text-sm px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent"></textarea>
+            </div>
+
+            <!-- Totales y Botón Enviar WhatsApp -->
+            <div class="pt-4 border-t border-slate-200 dark:border-slate-700 mt-2 space-y-3">
+                <div class="flex justify-between font-bold text-lg">
+                    <span>Total:</span>
+                    <span x-text="'$' + getTotal().toLocaleString()"></span>
+                </div>
+                <button @click="enviarPedidoWhatsApp()" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-xl transition shadow-lg shadow-green-600/30 flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+                    Enviar Pedido por WhatsApp
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CABECERA -->
+    <header class="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <a href="#inicio" @click="activeSection = 'inicio'" class="flex items-center gap-3">
+                <img src="https://i.imgur.com/1In8KJ0.png" alt="Logo" class="w-12 h-12 object-contain rounded-xl">
+                <div class="flex flex-col">
+                    <span class="font-bold text-lg tracking-tight leading-none">RíoPiedra</span>
+                    <span class="text-xs text-slate-500 font-medium tracking-widest uppercase mt-0.5">Esencia Natural</span>
+                </div>
+            </a>
+
+            <nav class="hidden md:flex items-center gap-8">
+                <button @click="activeSection = 'inicio'" :class="activeSection === 'inicio' ? 'text-river-600 font-semibold' : 'text-slate-600 dark:text-slate-400'">Inicio</button>
+                <button @click="activeSection = 'catalogo'" :class="activeSection === 'catalogo' ? 'text-river-600 font-semibold' : 'text-slate-600 dark:text-slate-400'">Colección</button>
+                <button @click="activeSection = 'contacto'" :class="activeSection === 'contacto' ? 'text-river-600 font-semibold' : 'text-slate-600 dark:text-slate-400'">Contacto</button>
+            </nav>
+
+            <div class="flex items-center gap-3">
+                <button @click="toggleTheme()" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                    <svg x-show="!darkMode" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    <svg x-show="darkMode" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                </button>
+
+                <!-- Botón Carrito con Contador -->
+                <button @click="cartOpen = true" class="flex items-center gap-2 bg-river-50 dark:bg-river-900/40 text-river-700 dark:text-river-300 px-4 py-2.5 rounded-xl font-medium text-sm border border-river-200 dark:border-river-800 relative">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                    <span x-text="getTotalItems()">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
+
+        <!-- INICIO -->
+        <section x-show="activeSection === 'inicio'" class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center min-h-[70vh]">
+            <div class="space-y-6 text-center lg:text-left">
+                <span class="inline-block bg-river-100 dark:bg-river-900/60 text-river-800 dark:text-river-300 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider">Piedras 100% Naturales de Río</span>
+                <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight leading-tight">
+                    La pureza del caudal <br>en tus <span class="text-river-600 dark:text-river-400">espacios favoritos</span>.
+                </h1>
+                <p class="text-slate-600 dark:text-slate-300 text-lg leading-relaxed max-w-xl mx-auto lg:mx-0">
+                    Pulidas por el tiempo y el agua cristalina. Descubre piezas únicas para decoración, paisajismo y bienestar.
+                </p>
+                <div class="flex flex-col sm:flex-row justify-center lg:justify-start gap-4 pt-4">
+                    <button @click="activeSection = 'catalogo'" class="bg-river-600 hover:bg-river-700 text-white font-semibold px-8 py-4 rounded-xl shadow-lg">Explorar Colección</button>
+                    <button @click="activeSection = 'contacto'" class="border border-slate-300 dark:border-slate-700 hover:border-river-600 font-semibold px-8 py-4 rounded-xl">Contactar Asesor</button>
+                </div>
+            </div>
+            <div class="relative flex justify-center">
+                <div class="w-72 h-72 sm:w-96 sm:h-96 rounded-3xl bg-river-50 p-4 flex items-center justify-center border shadow-xl overflow-hidden">
+                    <img src="https://i.imgur.com/cscyGjm.jpeg" alt="Piedras" class="w-full h-full object-cover rounded-2xl">
+                </div>
+            </div>
+        </section>
+
+        <!-- CATÁLOGO (10 PRODUCTOS) -->
+        <section x-show="activeSection === 'catalogo'" class="space-y-10">
+            <div class="text-center max-w-2xl mx-auto space-y-3">
+                <h2 class="text-3xl font-bold">Nuestra Colección Completa </h2>
+                <p class="text-slate-600 dark:text-slate-400 text-sm">Selecciona las variedades que desees y agrégalas a tu carrito.</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Producto 1 -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 flex flex-col justify-between shadow-sm">
+                    <div>
+                        <div class="h-48 rounded-xl overflow-hidden mb-4"><img src="https://i.imgur.com/cscyGjm.jpeg" class="w-full h-full object-cover"></div>
+                        <span class="text-xs text-river-600 font-bold uppercase">Decorativa</span>
+                        <h3 class="font-bold text-lg mt-1">Piedra Gris Suave Río</h3>
+                        <p class="text-slate-600 dark:text-slate-300 text-sm mt-2">Ideal para macetas y jardines interiores.</p>
+                    </div>
+                    <div class="mt-6 flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-700">
+                        <span class="font-extrabold text-lg">$18.000 <span class="text-xs text-slate-500">/ kg</span></span>
+                        <button @click="addToCart('Piedra Gris Suave Río', 18000)" class="bg-river-600 hover:bg-river-700 text-white text-sm font-semibold px-4 py-2 rounded-xl">Añadir</button>
+                    </div>
+                </div>
+
+                <!-- Producto 2 -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 flex flex-col justify-between shadow-sm">
+                    <div>
+                        <div class="h-48 rounded-xl overflow-hidden mb-4"><img src="https://i.imgur.com/Rjmt6yo.jpeg" class="w-full h-full object-cover"></div>
+                        <span class="text-xs text-river-600 font-bold uppercase">Premium</span>
+                        <h3 class="font-bold text-lg mt-1">Piedra Cuarzo Cristalino</h3>
+                        <p class="text-slate-600 dark:text-slate-300 text-sm mt-2">Piezas translúcidas de alta pureza mineral.</p>
+                    </div>
+                    <div class="mt-6 flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-700">
+                        <span class="font-extrabold text-lg">$35.000 <span class="text-xs text-slate-500">/ kg</span></span>
+                        <button @click="addToCart('Piedra Cuarzo Cristalino', 35000)" class="bg-river-600 hover:bg-river-700 text-white text-sm font-semibold px-4 py-2 rounded-xl">Añadir</button>
+                    </div>
+                </div>
+
+                <!-- Producto 3 -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 flex flex-col justify-between shadow-sm">
+                    <div>
+                        <div class="h-48 rounded-xl overflow-hidden mb-4"><img src="https://i.imgur.com/v4wOzmC.jpeg" class="w-full h-full object-cover"></div>
+                        <span class="text-xs text-river-600 font-bold uppercase">Paisajismo</span>
+                        <h3 class="font-bold text-lg mt-1">Set Rústico Multicolor</h3>
+                        <p class="text-slate-600 dark:text-slate-300 text-sm mt-2">Combinación de tonos terrosos y verdosos.</p>
+                    </div>
+                    <div class="mt-6 flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-700">
+                        <span class="font-extrabold text-lg">$28.000 <span class="text-xs text-slate-500">/ kg</span></span>
+                        <button @click="addToCart('Set Rústico Multicolor', 28000)" class="bg-river-600 hover:bg-river-700 text-white text-sm font-semibold px-4 py-2 rounded-xl">Añadir</button>
+                    </div>
+                </div>
+
+                <!-- Producto 4 -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 flex flex-col justify-between shadow-sm">
+                    <div>
+                        <div class="h-48 rounded-xl overflow-hidden mb-4"><img src="https://i.imgur.com/cscyGjm.jpeg" class="w-full h-full object-cover"></div>
+                        <span class="text-xs text-river-600 font-bold uppercase">Clásico</span>
+                        <h3 class="font-bold text-lg mt-1">Canto Rodado Blanco Pura</h3>
+                        <p class="text-slate-600 dark:text-slate-300 text-sm mt-2">Piedras blancas seleccionadas por su brillo.</p>
+                    </div>
+                    <div class="mt-6 flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-700">
+                        <span class="font-extrabold text-lg">$24.000 <span class="text-xs text-slate-500">/ kg</span></span>
+                        <button @click="addToCart('Canto Rodado Blanco Pura', 24000)" class="bg-river-600 hover:bg-river-700 text-white text-sm font-semibold px-4 py-2 rounded-xl">Añadir</button>
+                    </div>
+                </div>
+
+                <!-- Producto 5 -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 flex flex-col justify-between shadow-sm">
+                    <div>
+                        <div class="h-48 rounded-xl overflow-hidden mb-4"><img src="https://i.imgur.com/Rjmt6yo.jpeg" class="w-full h-full object-cover"></div>
+                        <span class="text-xs text-river-600 font-bold uppercase">Exótico</span>
+                        <h3 class="font-bold text-lg mt-1">Obsidiana Negra Volcánica</h3>
+                        <p class="text-slate-600 dark:text-slate-300 text-sm mt-2">Textura lisa y elegante acabado oscuro.</p>
+                    </div>
+                    <div class="mt-6 flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-700">
+                        <span class="font-extrabold text-lg">$42.000 <span class="text-xs text-slate-500">/ kg</span></span>
+                        <button @click="addToCart('Obsidiana Negra Volcánica', 42000)" class="bg-river-600 hover:bg-river-700 text-white text-sm font-semibold px-4 py-2 rounded-xl">Añadir</button>
+                    </div>
+                </div>
+
+                <!-- Producto 6 -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 flex flex-col justify-between shadow-sm">
+                    <div>
+                        <div class="h-48 rounded-xl overflow-hidden mb-4"><img src="https://i.imgur.com/v4wOzmC.jpeg" class="w-full h-full object-cover"></div>
+                        <span class="text-xs text-river-600 font-bold uppercase">Natural</span>
+                        <h3 class="font-bold text-lg mt-1">Piedra Caliza Ocre</h3>
+                        <p class="text-slate-600 dark:text-slate-300 text-sm mt-2">Tonos cálidos ideales para ambientes rústicos.</p>
+                    </div>
+                    <div class="mt-6 flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-700">
+                        <span class="font-extrabold text-lg">$22.000 <span class="text-xs text-slate-500">/ kg</span></span>
+                        <button @click="addToCart('Piedra Caliza Ocre', 22000)" class="bg-river-600 hover:bg-river-700 text-white text-sm font-semibold px-4 py-2 rounded-xl">Añadir</button>
+                    </div>
+                </div>
+
+                <!-- Producto 7 -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 flex flex-col justify-between shadow-sm">
+                    <div>
+                        <div class="h-48 rounded-xl overflow-hidden mb-4"><img src="https://i.imgur.com/cscyGjm.jpeg" class="w-full h-full object-cover"></div>
+                        <span class="text-xs text-river-600 font-bold uppercase">Jardinería</span>
+                        <h3 class="font-bold text-lg mt-1">Grava Fina de Río</h3>
+                        <p class="text-slate-600 dark:text-slate-300 text-sm mt-2">Granulometría pequeña para senderos y macetas.</p>
+                    </div>
+                    <div class="mt-6 flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-700">
+                        <span class="font-extrabold text-lg">$15.000 <span class="text-xs text-slate-500">/ kg</span></span>
+                        <button @click="addToCart('Grava Fina de Río', 15000)" class="bg-river-600 hover:bg-river-700 text-white text-sm font-semibold px-4 py-2 rounded-xl">Añadir</button>
+                    </div>
+                </div>
+
+                <!-- Producto 8 -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 flex flex-col justify-between shadow-sm">
+                    <div>
+                        <div class="h-48 rounded-xl overflow-hidden mb-4"><img src="https://i.imgur.com/Rjmt6yo.jpeg" class="w-full h-full object-cover"></div>
+                        <span class="text-xs text-river-600 font-bold uppercase">Decorativa</span>
+                        <h3 class="font-bold text-lg mt-1">Piedra Roja Terracota</h3>
+                        <p class="text-slate-600 dark:text-slate-300 text-sm mt-2">Aporta contraste y vivacidad a los espacios.</p>
+                    </div>
+                    <div class="mt-6 flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-700">
+                        <span class="font-extrabold text-lg">$26.000 <span class="text-xs text-slate-500">/ kg</span></span>
+                        <button @click="addToCart('Piedra Roja Terracota', 26000)" class="bg-river-600 hover:bg-river-700 text-white text-sm font-semibold px-4 py-2 rounded-xl">Añadir</button>
+                    </div>
+                </div>
+
+                <!-- Producto 9 -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 flex flex-col justify-between shadow-sm">
+                    <div>
+                        <div class="h-48 rounded-xl overflow-hidden mb-4"><img src="https://i.imgur.com/v4wOzmC.jpeg" class="w-full h-full object-cover"></div>
+                        <span class="text-xs text-river-600 font-bold uppercase">Zen</span>
+                        <h3 class="font-bold text-lg mt-1">Piedra Plana de Río Pulida</h3>
+                        <p class="text-slate-600 dark:text-slate-300 text-sm mt-2">Especiales para apilar y decoración de bienestar.</p>
+                    </div>
+                    <div class="mt-6 flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-700">
+                        <span class="font-extrabold text-lg">$30.000 <span class="text-xs text-slate-500">/ kg</span></span>
+                        <button @click="addToCart('Piedra Plana de Río Pulida', 30000)" class="bg-river-600 hover:bg-river-700 text-white text-sm font-semibold px-4 py-2 rounded-xl">Añadir</button>
+                    </div>
+                </div>
+
+                <!-- Producto 10 -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 flex flex-col justify-between shadow-sm sm:col-span-2 lg:col-span-1">
+                    <div>
+                        <div class="h-48 rounded-xl overflow-hidden mb-4"><img src="https://i.imgur.com/cscyGjm.jpeg" class="w-full h-full object-cover"></div>
+                        <span class="text-xs text-river-600 font-bold uppercase">Coleccionista</span>
+                        <h3 class="font-bold text-lg mt-1">Monolito Río Caquetá</h3>
+                        <p class="text-slate-600 dark:text-slate-300 text-sm mt-2">Pieza única de gran tamaño para centros focales.</p>
+                    </div>
+                    <div class="mt-6 flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-700">
+                        <span class="font-extrabold text-lg">$85.000 <span class="text-xs text-slate-500">/ und</span></span>
+                        <button @click="addToCart('Monolito Río Caquetá', 85000)" class="bg-river-600 hover:bg-river-700 text-white text-sm font-semibold px-4 py-2 rounded-xl">Añadir</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CONTACTO -->
+        <section x-show="activeSection === 'contacto'" class="max-w-3xl mx-auto space-y-8">
+            <div class="text-center space-y-3">
+                <h2 class="text-3xl font-bold">Hablemos Directamente</h2>
+                <p class="text-slate-600 dark:text-slate-400 text-sm">¿Tienes dudas o necesitas un pedido mayor? Contáctame.</p>
+            </div>
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border p-8 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6">
+                <div class="flex items-center gap-4 text-center sm:text-left">
+                    <div class="w-14 h-14 bg-green-500 text-white rounded-2xl flex items-center justify-center shrink-0">
+                        <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg">Escríbeme por WhatsApp</h3>
+                        <p class="text-sm text-slate-500">Atención rápida y personalizada.</p>
+                    </div>
+                </div>
+                <a href="https://wa.me/573133992644?text=Hola,%20estoy%20interesado%20en%20comprar%20piedras." target="_blank" class="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-3 rounded-xl shadow-lg">Chatear</a>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- PIE DE PÁGINA -->
+    <footer class="border-t border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-500">
+            <p>&copy; 2026 RíoPiedra. Todos los derechos reservados.</p>
+            <a href="https://wa.me/573133992644" target="_blank" class="hover:text-green-600 transition">WhatsApp: +57 3133992644</a>
+        </div>
+    </footer>
+</body>
+</html>
